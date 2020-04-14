@@ -53,42 +53,31 @@ dict_merge <- function(dict = "UT_geo_id_dictionary.csv", dta = "cc-est2018-alld
 
 
 #calculate single hospitalization rate based on strata
-strat_rates <- function( dta = df_agg,  num_obs= 100 , s_size = 1000,
+strat_rates <- function( dta = df_agg,  num_obs= 10 , s_size = 1000,
                          age_rates = c(0,0,.0004,.0004, .0104, .0104, .0343, .0343, .0425, .0425, .0816, .0816, .118, .118, .166, .166,.184,.184)){
   
-  
   #initialize dataframe to hold overall proportions
-  df_prop <- data.frame(geoid = names(df_agg[-1]),p_hosp=NA)
+  df_prop <- data.frame(geoid = names(dta[-1]),p_hosp=NA)
   
+  #FOr each county, loop to get age dist. multinomial draws
   for(i in 1:(ncol(dta)-1)){
     age_dist = unclass(unlist(dta[,i]))
+    
+    #initialize count of success var. with 0 for each county
+    suc <- 0
     
     #generate age buckets
     draws <- rmultinom(n = num_obs, size = s_size,prob = age_dist)
     
+    #loop to get binomial draws for each age group within the county
+    for(j in 1:dim(draws)[1]){
+      
+      suc <- sum(suc, rbinom(n = draws[j,],size = draws[j,],prob = age_rates[j]))
+      
+    }
     
-    df_success <- data.frame(g_1 = rbinom(n = draws[1,],size = draws[1,],prob = age_rates[1]),
-                             g_2 = rbinom(n = draws[2,],size = draws[2,],prob = age_rates[2]),
-                             g_3 = rbinom(n = draws[3,],size = draws[3,],prob = age_rates[3]),
-                             g_4 = rbinom(n = draws[4,],size = draws[4,],prob = age_rates[4]),
-                             g_5 = rbinom(n = draws[5,],size = draws[5,],prob = age_rates[5]),
-                             g_6 = rbinom(n = draws[6,],size = draws[6,],prob = age_rates[6]),
-                             g_7 = rbinom(n = draws[7,],size = draws[7,],prob = age_rates[7]),
-                             g_8 = rbinom(n = draws[8,],size = draws[8,],prob = age_rates[8]),
-                             g_9 = rbinom(n = draws[9,],size = draws[9,],prob = age_rates[9]),
-                             g_10 = rbinom(n = draws[10,],size = draws[10,],prob = age_rates[10]),
-                             g_11 = rbinom(n = draws[11,],size = draws[11,],prob = age_rates[11]),
-                             g_12 = rbinom(n = draws[12,],size = draws[12,],prob = age_rates[12]),
-                             g_13 = rbinom(n = draws[13,],size = draws[13,],prob = age_rates[13]),
-                             g_14 = rbinom(n = draws[14,],size = draws[14,],prob = age_rates[14]),
-                             g_15 = rbinom(n = draws[15,],size = draws[15,],prob = age_rates[15]),
-                             g_16 = rbinom(n = draws[16,],size = draws[16,],prob = age_rates[16]),
-                             g_17 = rbinom(n = draws[17,],size = draws[17,],prob = age_rates[17]),
-                             g_18 = rbinom(n = draws[18,],size = draws[18,],prob = age_rates[18]))
-    
-    #Get overall hospitalization rate
-    #print(sum(df_success)/sum(draws))
-    df_prop$p_hosp[i] <-  sum(df_success)/sum(draws)
+    #Get overall county hospitalization rate 
+    df_prop$p_hosp[i] <-  suc/sum(draws)
     
   }
   
